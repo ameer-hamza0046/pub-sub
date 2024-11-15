@@ -40,3 +40,6 @@ We will explore performance metrics in various design choices.
     output: stdout
 3.  input: client
     output: back to client
+
+
+A lot of things what I did are just slight modifications from chatGPT right now, i will try to structure them.
