@@ -20,6 +20,97 @@ void handle_sigint(int sig) {
   exit(0);
 }
 
+void handlePublisher(int client_fd) {
+  char client_buffer[BUF_SIZE];
+  int ret;
+  // to publish something, the client will send the message
+  // in the following format
+  // <topic>:<message>
+  // If the colon(:) is missing then the message format is invalid
+  // And when the client sends "exit" then it means the he want the
+  // connection to be closed.
+  while (true) {
+    ret = recv(client_fd, client_buffer, BUF_SIZE, 0);
+    if (ret < 0) {
+      printf("recv() error");
+      break;
+    }
+    if (ret == 0) {
+      printf("conn_closed - client_fd: %d\n", client_fd);
+      break;
+    }
+    if (strcmp(client_buffer, "exit") == 0) {
+      printf("client_fd %d is exiting...\n", client_fd);
+      break;
+    }
+    // find if colon in present in the string
+    bool found = false;
+    for (int i = 0; i < ret; i++) {
+      if (client_buffer[i] == ':') {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      printf("Message format is invalid... usage: <topic>:<message>\n");
+      continue;
+    }
+
+    // seperate the topic and the message
+    char topic_buffer[BUF_SIZE], message_buffer[BUF_SIZE];
+    found = false;
+    int j = 0;
+    for (int i = 0; i < ret; i++) {
+      if (client_buffer[i] == ':') {
+        found = true;
+        topic_buffer[j] = '\0';
+        j = 0;
+      } else if (!found) {
+        topic_buffer[j++] = client_buffer[i];
+      } else {
+        message_buffer[j++] = client_buffer[i];
+      }
+    }
+    message_buffer[j] = '\0';
+    printf("P: <Topic>:<Message>: %s:%s\n", topic_buffer, message_buffer);
+
+    // now we have to publish the message to the topic
+    // TODO
+  }
+  close(client_fd);
+  pthread_exit(NULL);
+}
+
+void handleSubscriber(int client_fd) {
+  // Subscriber
+  // subscriber will send topic names they would like to subscribe
+  // if subscriber want to close the connection, it would send "exit"
+  char client_buffer[BUF_SIZE];
+  int ret;
+  while (true) {
+    ret = recv(client_fd, client_buffer, BUF_SIZE, 0);
+    if (ret < 0) {
+      printf("recv() error\n");
+      break;
+    }
+
+    if (ret == 0) {
+      printf("conn_closed - client_fd: %d\n", client_fd);
+      break;
+    }
+
+    if (strcmp(client_buffer, "exit") == 0) {
+      printf("client_fd %d is exiting...\n", client_fd);
+      break;
+    }
+    printf("S: Topic: %s\n", client_buffer);
+    // now we have to subscribe to the topic
+    // TODO
+  }
+  close(client_fd);
+  pthread_exit(NULL);
+}
+
 void *client_handler(void *arg) {
   int client_fd = *(int *)arg;
   free(arg);
@@ -27,99 +118,29 @@ void *client_handler(void *arg) {
   char client_buffer[BUF_SIZE];
   int ret;
 
-  // first ask whether client is a publisher or a subscriber
-  // client will send 1 character
-  // if it is publisher, the char will be 'P' else for subscriber it will be 'S'
-  // otherwise invalid
+  /* first ask whether client is a publisher or a subscriber
+   * client will send 1 character
+   * if it is publisher, the char will be 'P'
+   * else for subscriber it will be 'S'
+   * otherwise invalid
+   */
   ret = recv(client_fd, client_buffer, BUF_SIZE, 0);
-  if (ret < 0) {
+  if (ret <= 0) {
     printf("recv error()\n");
     close(client_fd);
     pthread_exit(NULL);
   }
-  
+
   if (strcmp(client_buffer, "P") == 0) {
-    // to publish something, the client will send the message
-    // in the following format
-    // <topic>:<message>
-    // If the colon(:) is missing then the message format is invalid
-    // And when the client sends "exit" then it means the he want the
-    // connection to be closed.
-    while (true) {
-      ret = recv(client_fd, client_buffer, BUF_SIZE, 0);
-      if (ret < 0) {
-        printf("recv() error", client_fd);
-        break;
-      }
-      if (ret == 0) {
-        printf("conn_closed - client_fd: %d\n", client_fd);
-        break;
-      }
-      if (strcmp(client_buffer, "exit") == 0) {
-        printf("client_fd %d is exiting...\n", client_fd);
-        break;
-      }
-      // find if colon in present in the string
-      bool found = false;
-      for (int i = 0; i < ret; i++) {
-        if (client_buffer[i] == ':') {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        printf("Message format is invalid... usage: <topic>:<message>\n");
-        continue;
-      }
-
-      // seperate the topic and the message
-      char topic_buffer[BUF_SIZE], message_buffer[BUF_SIZE];
-      found = false;
-      int j = 0;
-      for (int i = 0; i < ret; i++) {
-        if (client_buffer[i] == ':') {
-          found = true;
-          topic_buffer[j] = '\0';
-          j = 0;
-        } else if (!found) {
-          topic_buffer[j++] = client_buffer[i];
-        } else {
-          message_buffer[j++] = client_buffer[i];
-        }
-      }
-      message_buffer[j] = '\0';
-      printf("P: <Topic>:<Message>: %s:%s\n", topic_buffer, message_buffer);
-
-      // now we have to publish the message to the topic
-      // TODO
-    }
+    handlePublisher(client_fd);
   } else if (strcmp(client_buffer, "S") == 0) {
-    // Subscriber
-    // subscriber will send topic names they would like to subscribe
-    // if subscriber want to close the connection, it would send "exit"
-    while (true) {
-      ret = recv(client_fd, client_buffer, BUF_SIZE, 0);
-      if (ret < 0) {
-        printf("recv() error\n", client_fd);
-        break;
-      }
-
-      if (ret == 0) {
-        printf("conn_closed - client_fd: %d\n", client_fd);
-        break;
-      }
-
-      if (strcmp(client_buffer, "exit") == 0) {
-        printf("client_fd %d is exiting...\n", client_fd);
-        break;
-      }
-      printf("S: Topic: %s\n", client_buffer);
-      // now we have to subscribe to the topic
-      // TODO
-    }
+    handleSubscriber(client_fd);
+  } else {
+    printf("Error: Invalid role %s\n", client_buffer);
+    close(client_fd);
+    pthread_exit(NULL);
   }
-  close(client_fd);
-  pthread_exit(NULL);
+  return NULL;
 }
 
 int main(int argc, char *argv[]) {
