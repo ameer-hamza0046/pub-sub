@@ -5,8 +5,11 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <time.h>
 
 #define BUF_SIZE 1024
+#define MAX_TOPICS 5
+#define MAX_MESSAGES 5
 
 int main(int argc, char *argv[]) {
   if (argc != 4) {
@@ -42,35 +45,54 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  sleep(rand() % 4);
+  char *topics[MAX_TOPICS] = {"Sports", "Technology", "Weather", "News", "Finance"};
+  char *messages[MAX_MESSAGES] = {
+      "Breaking news!",
+      "Big updates in tech!",
+      "Rain expected tomorrow.",
+      "Stock market hits record highs.",
+      "The game was fantastic!"};
 
   char buffer[BUF_SIZE] = {0};
-  char message[BUF_SIZE] = "P";
-  ret = send(sock, message, strlen(message)+1, 0);
+  char message[BUF_SIZE];
+
+  // Send "P" to indicate this is a publisher
+  strcpy(message, "P");
+  ret = send(sock, message, strlen(message) + 1, 0);
   if (ret == -1) {
     printf("Failed to send message\n");
+    close(sock);
     return -1;
   }
   printf("Sent: %s\n", message);
 
+  // Publish messages
+  int publish_count = rand() % 5 + 1; // Random number of times to publish
+  for (int i = 0; i < publish_count; i++) {
+    sleep(rand() % 4 + 1); // Random sleep between 1 to 4 seconds
 
-  strcpy(message, "World:World is Big!");
-  ret = send(sock, message, strlen(message)+1, 0);
-  if (ret == -1) {
-    printf("Failed to send message\n");
-    return -1;
+    // Pick a random topic and message
+    const char *topic = topics[rand() % MAX_TOPICS];
+    const char *msg = messages[rand() % MAX_MESSAGES];
+
+    snprintf(buffer, BUF_SIZE, "%s:%s", topic, msg);
+    ret = send(sock, buffer, strlen(buffer) + 1, 0);
+    if (ret == -1) {
+      printf("Failed to send message\n");
+      break;
+    }
+    printf("Sent: %s\n", buffer);
   }
-  printf("Sent: %s\n", message);
 
-
+  // Send "exit" to close the connection
   strcpy(message, "exit");
-  ret = send(sock, message, strlen(message)+1, 0);
+  ret = send(sock, message, strlen(message) + 1, 0);
   if (ret == -1) {
-    printf("Failed to send message\n");
-    return -1;
+    printf("Failed to send 'exit' message\n");
+  } else {
+    printf("Sent: %s\n", message);
   }
-  printf("Sent: %s\n", message);
-  sleep(rand() % 4 + 1);
+
   close(sock);
   return 0;
 }
