@@ -18,6 +18,7 @@ pthread_t recv_thread;
 
 char brokers[MAX_BROKERS][BUF_SIZE];
 int broker_sockets[MAX_BROKERS];
+int broker_cnt = 0;
 
 void handle_sigint(int sig) {
   printf("\nSIGINT received. Sending exit message to the server...\n");
@@ -108,8 +109,20 @@ int main(int argc, char *argv[]) {
 
     if (broker_sock == -1) {
       // connect to this broker
-      char *ip = strtok(buffer, ":");
-      char *port_str = strtok(NULL, ":");
+      char ip[BUF_SIZE], port_str[BUF_SIZE];
+      int idx1 = 0, idx2 = 0;
+      int flag = 0;
+      for(int i=0; i<BUF_SIZE && buffer[i] != '\0'; i++) {
+        if(buffer[i] == ':') {
+          flag = 1;
+          continue;
+        }
+        if(!flag) {
+          ip[idx1++] = buffer[i];
+        } else {
+          port_str[idx2++] = buffer[i];
+        }
+      }
 
       char broker_ip_address[BUF_SIZE];
       sprintf(broker_ip_address, "%s", ip);
@@ -143,6 +156,12 @@ int main(int argc, char *argv[]) {
         printf("Failed to send subscriber role\n");
         return -1;
       }
+
+      // save this broker
+      strcpy(brokers[broker_cnt], buffer);
+      printf("IP in pub: %s\n", buffer);
+      broker_sockets[broker_cnt] = broker_sock;
+      broker_cnt++;
     }
 
     // Construct and send the message in the format "topic:message"
