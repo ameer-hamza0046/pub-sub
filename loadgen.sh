@@ -30,7 +30,9 @@ for ((i = 1; i <= $NUM_PUBS; i++)); do
     ./client-sub.out $SERVER_IP $SERVER_PORT $i &
 done
 
-time bash ./loadgen-pub.sh $NUM_SUBS $NUM_PUBS $SERVER_IP $SERVER_PORT $MSGS
+# { time bash ./loadgen-pub.sh $NUM_SUBS $NUM_PUBS $SERVER_IP $SERVER_PORT $MSGS } >> timetaken.txt
+# time bash ./loadgen-pub.sh $NUM_SUBS $NUM_PUBS $SERVER_IP $SERVER_PORT $MSGS
+{ time bash ./loadgen-pub.sh $NUM_SUBS $NUM_PUBS $SERVER_IP $SERVER_PORT $MSGS; } 2> time_output.txt
 
 wait
 echo "All clients have finished."

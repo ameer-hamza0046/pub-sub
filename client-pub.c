@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
   int topic_index_to_socket[num_topics];
   memset(topic_index_to_socket, -1, sizeof(topic_index_to_socket));
   while (messages_to_publish-- > 0) {
-    sleep(rand() % 3 + 1); // Random delay between messages as think time
+    sleep(rand() % 2); // Random delay between messages as think time
 
     // Select a random topic and message
     int topic_index = rand() % num_topics;

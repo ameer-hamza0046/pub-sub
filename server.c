@@ -12,8 +12,8 @@
 //============= SOME CONSTANTS =====================================
 
 #define BUF_SIZE 1024
-#define MAX_TOPICS 100
-#define MAX_SUBSCRIBERS 100
+#define MAX_TOPICS 1000
+#define MAX_SUBSCRIBERS 100000
 
 typedef struct {
   char topic_name[BUF_SIZE];
