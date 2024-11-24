@@ -55,7 +55,7 @@ void *receive_messages(void *arg) {
 
 int main(int argc, char *argv[]) {
   if (argc != 4) {
-    printf("Usage: %s <server_ip> <server_port> <seed>\n", argv[0]);
+    printf("Usage: %s <load_balancer_ip> <load_balancer_port> <seed>\n", argv[0]);
     return -1;
   }
 
@@ -107,6 +107,9 @@ int main(int argc, char *argv[]) {
       idx = rand() % num_topics; // Random index
     } while (selected_indices[idx]); // Ensure no repetition
     selected_indices[idx] = 1; // Mark index as selected
+
+    // check if idx already has a socket assigned
+    
 
     // Send topic index to server to get broker ip
     char buffer[BUF_SIZE];
