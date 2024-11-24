@@ -14,7 +14,6 @@
 #define MAX_BROKERS 100
 
 int sock;
-pthread_t recv_thread;
 
 char brokers[MAX_BROKERS][BUF_SIZE];
 int broker_sockets[MAX_BROKERS];
@@ -30,8 +29,6 @@ void handle_sigint(int sig) {
     close(broker_sockets[i]);
   }
   close(sock);
-  pthread_cancel(recv_thread);
-  pthread_join(recv_thread, NULL);
   for (int i = 0; i < MAX_BROKERS; i++) {
     pthread_cancel(broker_threads[i]);
     pthread_join(broker_threads[i], NULL);
@@ -57,7 +54,8 @@ void *receive_messages(void *arg) {
 
 int main(int argc, char *argv[]) {
   if (argc != 4) {
-    printf("Usage: %s <load_balancer_ip> <load_balancer_port> <seed>\n", argv[0]);
+    printf("Usage: %s <load_balancer_ip> <load_balancer_port> <seed>\n",
+           argv[0]);
     return -1;
   }
 
@@ -90,9 +88,7 @@ int main(int argc, char *argv[]) {
     printf("Connection Failed\n");
     return -1;
   }
-  int *ptr = malloc(sizeof(int));
-  *ptr = sock;
-  pthread_create(&recv_thread, NULL, receive_messages, ptr);
+
   signal(SIGINT, handle_sigint);
   //////////////////////////////////////////////////////////////
 
@@ -103,7 +99,7 @@ int main(int argc, char *argv[]) {
   memset(selected_indices, 0, sizeof(selected_indices));
 
   for (int i = 0; i < selected_count; ++i) {
-    sleep(1); // think time
+    // sleep(1); // think time
     int idx;
     do {
       idx = rand() % num_topics; // Random index
@@ -111,7 +107,6 @@ int main(int argc, char *argv[]) {
     selected_indices[idx] = 1; // Mark index as selected
 
     // check if idx already has a socket assigned
-    
 
     // Send topic index to server to get broker ip
     char buffer[BUF_SIZE];
@@ -138,12 +133,12 @@ int main(int argc, char *argv[]) {
       char ip[BUF_SIZE], port_str[BUF_SIZE];
       int idx1 = 0, idx2 = 0;
       int flag = 0;
-      for(int i=0; i<BUF_SIZE && buffer[i] != '\0'; i++) {
-        if(buffer[i] == ':') {
+      for (int i = 0; i < BUF_SIZE && buffer[i] != '\0'; i++) {
+        if (buffer[i] == ':') {
           flag = 1;
           continue;
         }
-        if(!flag) {
+        if (!flag) {
           ip[idx1++] = buffer[i];
         } else {
           port_str[idx2++] = buffer[i];
@@ -191,7 +186,7 @@ int main(int argc, char *argv[]) {
       // create thread for broker
       int *ptr = malloc(sizeof(int));
       *ptr = broker_sock;
-      pthread_create(&broker_threads[broker_index], NULL, receive_messages,
+      pthread_create(&broker_threads[broker_cnt - 1], NULL, receive_messages,
                      ptr);
     }
     // now send the topic to this broker
@@ -201,8 +196,6 @@ int main(int argc, char *argv[]) {
     }
     printf("Subscribed to topic: %s\n", topics[idx]);
   }
-
-  pthread_join(recv_thread, NULL);
   for (int i = 0; i < MAX_BROKERS; i++) {
     pthread_join(broker_threads[i], NULL);
     close(broker_sockets[i]);
